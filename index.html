@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PathPilot - AI Career Coach & Accountability Partner</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="top-header">
+      <div class="brand-section">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 17 10 11 4 5"></polyline>
+            <line x1="12" y1="19" x2="20" y2="19"></line>
+          </svg>
+          PATHPILOT
+        </div>
+        <span class="tag-badge">ACCOUNTABILITY PARTNER</span>
+        <span id="header-role" class="tag-badge" style="display:none; color:var(--text-primary);"></span>
+      </div>
+
+      <div class="header-status-bar">
+        <div class="metric-pill">
+          <span class="label">Progress:</span>
+          <span id="header-day" class="value">Day 1</span>
+        </div>
+
+        <div class="metric-pill">
+          <span class="label">Streak:</span>
+          <span id="header-streak" class="value">0d</span>
+        </div>
+
+        <div id="header-timer-indicator" class="timer-indicator">
+          <div class="timer-dot"></div>
+          <span class="label">24H Timer:</span>
+          <span id="header-timer" class="value">24:00:00</span>
+        </div>
+
+        <div class="header-actions">
+          <button id="btn-test-clap" class="btn btn-outline btn-sm" title="Test Web Audio API applause">
+            Test Clap
+          </button>
+          <button id="btn-mute" class="btn btn-outline btn-sm">
+            Audio: On
+          </button>
+          <button id="btn-reset" class="btn btn-outline btn-sm">
+            Reset
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Navigation (Only visible after onboarding) -->
+    <nav id="main-nav-bar" class="main-nav" style="display:none;">
+      <button id="tab-tasks" class="nav-tab active">
+        Daily Tasks <span class="badge-counter" id="tab-tasks-badge">Active</span>
+      </button>
+      <button id="tab-roadmap" class="nav-tab">
+        Roadmap
+      </button>
+      <button id="tab-chat" class="nav-tab">
+        Coach Dialogue
+      </button>
+    </nav>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+      <!-- 1. ONBOARDING VIEW -->
+      <section id="view-onboarding" class="view-section active">
+        <div class="onboarding-wizard">
+          <div style="text-align:center;margin-bottom:24px;">
+            <div class="tag-badge" style="margin-bottom:8px;display:inline-block;">CAREER COACH INITIALIZATION</div>
+            <h1 style="font-size:22px;font-weight:700;color:var(--text-primary);letter-spacing:-0.01em;margin-bottom:6px;">
+              PathPilot Career Roadmap & Discipline
+            </h1>
+            <p style="font-size:13px;color:var(--text-secondary);max-width:520px;margin:0 auto;line-height:1.5;">
+              No vague goals. We build a personalized, phased roadmap, assign 2-4 measurable tasks daily, and track completion with firm accountability.
+            </p>
+          </div>
+
+          <div class="step-indicator-bar">
+            <span style="font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);text-transform:uppercase;">
+              Setup Phase <span id="onboarding-step-num">1</span> of 4
+            </span>
+            <div style="display:flex;gap:6px;">
+              <span class="step-number" style="font-size:11px;font-family:var(--font-mono);">1</span>
+              <span class="step-number" style="font-size:11px;font-family:var(--font-mono);">2</span>
+              <span class="step-number" style="font-size:11px;font-family:var(--font-mono);">3</span>
+              <span class="step-number" style="font-size:11px;font-family:var(--font-mono);">4</span>
+            </div>
+          </div>
+
+          <div id="onboarding-step-container" class="card">
+            <!-- Dynamic step injected by app.js -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. MAIN APPLICATION VIEWS -->
+      <section id="view-main" class="view-section" style="display:none;">
+        <!-- TAB A: DAILY TASKS -->
+        <div id="panel-tasks" class="view-section active">
+          <div class="view-header">
+            <div class="view-title-group">
+              <h1 id="task-day-title">Day 1 Assignment</h1>
+              <p id="task-progress-count">0 of 3 tasks completed</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="text-align:right;">
+                <div style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;color:var(--text-secondary);">
+                  Estimated Workload
+                </div>
+                <div id="task-workload-estimate" class="font-mono" style="font-weight:700;font-size:13px;">
+                  135 min (~2.3 hrs)
+                </div>
+              </div>
+              <button id="btn-open-checkin" class="btn btn-primary btn-lg">
+                Check In for Day
+              </button>
+            </div>
+          </div>
+
+          <!-- Day Locked Panel (shown after finishing a day before its 24h window ends) -->
+          <div id="day-locked-panel" class="understanding-check-panel" style="display:none;">
+            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;">
+              Day Complete
+            </div>
+            <div id="day-locked-title" class="understanding-question">
+              All tasks done. Next day unlocks when your 24-hour window ends.
+            </div>
+            <div class="font-mono" style="font-size:28px;font-weight:700;color:var(--text-primary);">
+              <span id="day-locked-countdown">00:00:00</span>
+            </div>
+            <div style="margin-top:6px;font-size:12px;color:var(--text-secondary);">
+              Rest, review, or revisit today's material. New tasks and a fresh 24-hour timer start automatically.
+            </div>
+          </div>
+
+          <!-- Explanation output container -->
+          <div id="explanation-container"></div>
+
+          <!-- Tasks List Container -->
+          <div id="task-list-container" class="tasks-container">
+            <!-- Injected by app.js -->
+          </div>
+
+          <!-- Understanding Check Section -->
+          <div id="understanding-section" class="understanding-check-panel">
+            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;">
+              Accountability Protocol
+            </div>
+            <div class="understanding-question">
+              Is there any task you didn't understand?
+            </div>
+            <div class="understanding-actions">
+              <button id="btn-understand-all" class="btn btn-primary">
+                No, I understand all tasks. Start my 24-hour timer!
+              </button>
+              <button id="btn-understand-need-help" class="btn btn-secondary">
+                Yes, I need clarification on a task
+              </button>
+            </div>
+            <div id="understanding-status-notice" style="display:none;margin-top:10px;font-size:12px;color:var(--color-success);font-family:var(--font-mono);">
+              Coach: "Great, your 24-hour timer starts now. Go get it!" [EVENT: START_TIMER_24H]
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB B: ROADMAP OVERVIEW -->
+        <div id="panel-roadmap" class="view-section">
+          <div class="view-header">
+            <div class="view-title-group">
+              <h1 id="roadmap-title">Frontend Developer Career Roadmap</h1>
+              <p id="roadmap-desc">Phased curriculum with milestones and concrete capability targets.</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;">
+              <div>
+                <div style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;color:var(--text-secondary);">
+                  Total Duration
+                </div>
+                <div id="roadmap-days" class="font-mono" style="font-weight:700;font-size:20px;">
+                  60 Days
+                </div>
+              </div>
+              <button id="btn-confirm-roadmap" class="btn btn-primary btn-lg">
+                Confirm Roadmap & Start
+              </button>
+            </div>
+          </div>
+
+          <div id="roadmap-confirm-banner" class="card" style="background-color:var(--bg-subtle);display:flex;align-items:center;justify-content:space-between;padding:14px 18px;">
+            <span style="font-size:13px;color:var(--text-primary);">
+              Review your roadmap phases below. You can adjust the day distribution for each phase before confirming.
+            </span>
+          </div>
+
+          <div id="roadmap-phases-container" class="roadmap-phases-grid">
+            <!-- Injected by app.js -->
+          </div>
+        </div>
+
+        <!-- TAB C: COACH DIALOGUE -->
+        <div id="panel-chat" class="view-section">
+          <div class="view-header">
+            <div class="view-title-group">
+              <h1>PathPilot Direct Dialogue</h1>
+              <p>Direct communication with your AI career coach.</p>
+            </div>
+          </div>
+
+          <div class="chat-thread-container">
+            <div id="chat-thread" class="chat-messages-area">
+              <div class="chat-bubble coach">
+                <div style="font-size:10px;font-family:var(--font-mono);margin-bottom:4px;color:var(--text-muted);text-transform:uppercase;">
+                  PATHPILOT COACH
+                </div>
+                <div>
+                  I am PathPilot. I will build your personalized career roadmap, assign daily tasks, and enforce disciplined consistency. Let us get to work.
+                </div>
+              </div>
+            </div>
+
+            <form id="chat-form" class="chat-input-bar">
+              <input type="text" id="chat-input" class="form-input" placeholder="Ask coach to clarify a concept, report progress, or discuss roadblocks..." style="flex:1;" />
+              <button type="submit" class="btn btn-primary">Send</button>
+            </form>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- CHECK-IN MODAL -->
+    <div id="checkin-modal" class="modal-overlay">
+      <div class="modal-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border-default);">
+          <div id="checkin-title" class="modal-title font-mono" style="font-size:14px;text-transform:uppercase;">
+            End-of-Day Accountability Check
+          </div>
+          <button id="checkin-close" class="btn btn-outline btn-sm">✕</button>
+        </div>
+
+        <!-- Modal View 1: Review Completed Tasks -->
+        <div id="checkin-review-view" style="display:block;">
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">
+            Confirm your completed daily tasks:
+          </p>
+          <div id="checkin-review-task-list" class="card" style="padding:12px;margin-bottom:16px;"></div>
+
+          <div style="display:flex;justify-content:flex-end;gap:10px;">
+            <button id="btn-proceed-all-completed" class="btn btn-success btn-lg">
+              Confirm ALL Tasks Completed
+            </button>
+            <button id="btn-proceed-reason-review" class="btn btn-primary" style="display:none;">
+              Report Incomplete Tasks
+            </button>
+          </div>
+
+          <div style="text-align:center;margin-top:14px;">
+            <button id="btn-rest-day-option" style="background:none;border:none;color:var(--text-secondary);font-size:12px;text-decoration:underline;cursor:pointer;">
+              Feeling exhausted or sick? Schedule a rest day instead (No penalty)
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal View 2: Celebration (ALL COMPLETED) -->
+        <div id="checkin-celebration-view" style="display:none;" class="celebration-screen">
+          <div class="event-tag-display" style="display:inline-block;margin-bottom:12px;">
+            [EVENT: PLAY_CLAP_AUDIO]<br/>
+            [EVENT: SHOW_SCREEN "Hurray! One step ahead on your journey!"]
+          </div>
+          <h2>Hurray! One step ahead on your journey!</h2>
+          <p>You completed every single task scheduled for today. Solid execution.</p>
+
+          <div class="celebration-metrics">
+            <div class="celebration-metric-box">
+              <div id="celebration-streak-val" class="metric-val">+1 Day</div>
+              <div class="metric-lbl">Active Streak</div>
+            </div>
+            <div class="celebration-metric-box">
+              <div id="celebration-progress-val" class="metric-val">12%</div>
+              <div class="metric-lbl">Roadmap Complete</div>
+            </div>
+          </div>
+
+          <button id="btn-advance-next-day" class="btn btn-primary btn-lg" style="width:100%;">
+            Continue →
+          </button>
+        </div>
+
+        <!-- Modal View 3: Reason Input (ANY TASK MISSED) -->
+        <div id="checkin-reason-view" style="display:none;">
+          <p style="font-size:13px;color:var(--text-primary);margin-bottom:12px;line-height:1.5;">
+            What stopped you from completing your scheduled tasks?
+          </p>
+
+          <div class="form-group">
+            <label class="form-label">Be honest. PathPilot will classify the response:</label>
+            <textarea id="reason-input" class="form-textarea" placeholder="Explain what happened (e.g. task was too big / illness / unexpected overtime / distracted / lost focus)..."></textarea>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;">
+            <button id="btn-submit-reason" class="btn btn-primary">
+              Submit Explanation →
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal View 4: Rescheduled (VALID EXCUSE) -->
+        <div id="checkin-rescheduled-view" style="display:none;">
+          <div class="event-tag-display">[EVENT: RESCHEDULE_TASKS]</div>
+          <div class="card" style="background-color:var(--bg-subtle);margin-bottom:16px;">
+            <div style="font-weight:600;font-size:13px;color:var(--text-primary);margin-bottom:6px;">
+              Reason Classified: VALID
+            </div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;">
+              I understand completely. Real life happens, and challenging concepts take iteration. No penalty added to your timeline.
+            </p>
+          </div>
+          <p style="font-size:13px;color:var(--text-primary);margin-bottom:14px;">
+            I have broken the incomplete work into two smaller, focused chunks and added them into your schedule.
+          </p>
+          <div style="display:flex;justify-content:flex-end;">
+            <button id="btn-acknowledge-reschedule" class="btn btn-primary">
+              Acknowledge & View Updated Tasks
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal View 5: Penalty (INVALID EXCUSE) -->
+        <div id="checkin-penalty-view" style="display:none;">
+          <div class="event-tag-display">[EVENT: ADD_DAY]</div>
+
+          <div id="firm-warning-box" class="firm-warning-banner">
+            <div class="firm-warning-text">
+              ⚠️ Warning: At this pace you will not reach your goal on time. You're moving too slow. Push harder!
+            </div>
+            <div id="rotated-quote-text" class="quote-box">
+              "Discipline is choosing between what you want now and what you want most."
+            </div>
+          </div>
+
+          <p id="penalty-count-notice" style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;">
+            +1 day added to roadmap. (Penalties this week: 1 / 2).
+          </p>
+
+          <div style="display:flex;justify-content:flex-end;">
+            <button id="btn-accept-penalty" class="btn btn-primary">
+              Accept & Resume Tomorrow
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal View 6: Unclear Excuse Followup -->
+        <div id="checkin-unclear-view" style="display:none;">
+          <p style="font-size:13px;color:var(--text-primary);margin-bottom:14px;">
+            Was this incomplete due to an unexpected external blocker, or did attention and time get diverted elsewhere?
+          </p>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button class="btn btn-secondary" data-unclear-choice="external">
+              External blocker (Health, family, outage, unexpected work emergency)
+            </button>
+            <button class="btn btn-secondary" data-unclear-choice="distraction">
+              Time got diverted (Procrastination, distraction, social media, lack of focus)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WEEKLY REVIEW MODAL (Every 7 Days) -->
+    <div id="weekly-review-modal" class="modal-overlay">
+      <div class="modal-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border-default);">
+          <div class="modal-title font-mono" style="font-size:14px;text-transform:uppercase;">
+            Week <span id="weekly-week-num">1</span> Review
+          </div>
+          <button id="weekly-review-close" class="btn btn-outline btn-sm">✕</button>
+        </div>
+
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">
+          7-day review cycle. Consistent accountability prevents goal drift.
+        </p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+          <div class="card" style="text-align:center;padding:12px;">
+            <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-secondary);text-transform:uppercase;">Tasks Done</div>
+            <div id="weekly-done-pct" class="font-mono" style="font-size:20px;font-weight:700;">100%</div>
+          </div>
+          <div class="card" style="text-align:center;padding:12px;">
+            <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-secondary);text-transform:uppercase;">Streak</div>
+            <div id="weekly-streak-days" class="font-mono" style="font-size:20px;font-weight:700;">7d</div>
+          </div>
+          <div class="card" style="text-align:center;padding:12px;">
+            <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-secondary);text-transform:uppercase;">Penalties</div>
+            <div id="weekly-penalties" class="font-mono" style="font-size:20px;font-weight:700;">0d</div>
+          </div>
+        </div>
+
+        <div class="card" style="background-color:var(--bg-subtle);margin-bottom:16px;">
+          <div style="font-size:11px;font-family:var(--font-mono);text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px;">
+            Focus for Next 7 Days:
+          </div>
+          <div style="font-size:13px;color:var(--text-primary);line-height:1.5;">
+            Protect your 24-hour accountability window. Complete the highest complexity task in your first focus block of the day.
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;">
+          <button id="btn-dismiss-weekly-review" class="btn btn-primary">
+            Start Next 7-Day Cycle
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EVENT LOG DRAWER -->
+    <div id="event-drawer" class="event-log-drawer minimized">
+      <div id="event-drawer-header" class="drawer-header">
+        <span class="drawer-title">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          SYSTEM EVENT BUS
+          <span id="event-drawer-count" class="tag-badge">0</span>
+        </span>
+        <span style="font-size:10px;font-family:var(--font-mono);color:var(--text-secondary);">
+          TOGGLE LOG
+        </span>
+      </div>
+      <div id="event-list" class="drawer-body">
+        <!-- Event entries injected by app.js -->
+      </div>
+      <div style="padding:6px 12px;background-color:var(--bg-surface);border-top:1px solid var(--border-default);display:flex;justify-content:flex-end;">
+        <button id="btn-clear-events" class="btn btn-outline btn-sm" style="font-size:10px;">
+          Clear Events
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="audio.js"></script>
+  <script src="roadmapData.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+
