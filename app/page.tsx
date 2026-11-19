@@ -14,9 +14,13 @@ import { audioService } from "@/lib/audio";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoginGateModal } from "@/components/login-gate-modal";
+import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { useSession, authPost, signOut } from "@/lib/auth";
 
 const PENDING_ONBOARDING_KEY = "pathpilot_pending_onboarding";
+// Id of the account the locally saved roadmap belongs to, so another account
+// signing in on the same browser never sees (or overwrites) someone else's data.
+const OWNER_KEY = "pathpilot_owner";
 
 export default function PathPilotApp() {
   // Auth (Google via Supabase). There is no guest mode.
@@ -219,6 +223,19 @@ export default function PathPilotApp() {
   React.useEffect(() => {
     if (!authReady || !session || !isOnboarded || !profile) return;
     if (syncedUserRef.current === session.user.id) return;
+
+    let owner: string | null = null;
+    try {
+      owner = localStorage.getItem(OWNER_KEY);
+    } catch {}
+    if (owner && owner !== session.user.id) {
+      // Saved roadmap belongs to a different account: start this one fresh
+      clearLocalData();
+      return;
+    }
+    try {
+      localStorage.setItem(OWNER_KEY, session.user.id);
+    } catch {}
     syncedUserRef.current = session.user.id;
 
     syncProfile({ ...profile, currentDay, streak });
@@ -237,6 +254,11 @@ export default function PathPilotApp() {
     setProfile(data);
     syncProfile({ ...data, currentDay: 1, streak: 0 });
     syncedUserRef.current = session?.user.id ?? null;
+    if (session) {
+      try {
+        localStorage.setItem(OWNER_KEY, session.user.id);
+      } catch {}
+    }
 
     // Look up or synthesize curriculum
     const slug = data.targetRole.toLowerCase().replace(/\s+/g, "-");
@@ -548,32 +570,46 @@ export default function PathPilotApp() {
     stopTimer("penalty");
   };
 
-  // Reset Application Data
-  const handleReset = () => {
-    if (confirm("Reset roadmap, tasks, and accountability streak?")) {
-      // Remove only app data; keep the Supabase sign-in session
+  // Wipe the roadmap saved in this browser (keeps the Supabase sign-in session
+  // and does not touch server-side data)
+  const clearLocalData = () => {
+    try {
       Object.keys(localStorage)
         .filter((k) => k.startsWith("pathpilot_"))
         .forEach((k) => localStorage.removeItem(k));
-      setIsOnboarded(false);
-      setProfile(null);
-      setRoadmap(null);
-      setCurrentDay(1);
-      setTasks([]);
-      setStreak(0);
-      setPenaltiesThisWeek(0);
-      setTotalExtraDays(0);
-      stopTimer("reset");
-      setDayLocked(false);
-      setSystemEvents([]);
+    } catch {}
+    setIsOnboarded(false);
+    setProfile(null);
+    setRoadmap(null);
+    setCurrentDay(1);
+    setTasks([]);
+    setStreak(0);
+    setPenaltiesThisWeek(0);
+    setTotalExtraDays(0);
+    setTimerActive(false);
+    setTimerEndsAt(null);
+    setTimerSeconds(86400);
+    setDayLocked(false);
+    setSystemEvents([]);
+  };
+
+  // Reset Application Data
+  const handleReset = () => {
+    if (confirm("Reset roadmap, tasks, and accountability streak?")) {
+      clearLocalData();
+      authPost("/api/timer/stop", { reason: "reset" }).catch(() => {});
     }
   };
+
+  // Signed in with a saved roadmap: show the dashboard. Signed out: show the
+  // start page; the saved roadmap comes back when the same account signs in.
+  const showDashboard = isOnboarded && !!session;
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       {/* Top Header */}
       <Header
-        targetRole={profile?.targetRole || ""}
+        targetRole={showDashboard ? profile?.targetRole || "" : ""}
         currentDay={currentDay}
         totalDays={(roadmap?.totalDays || 60) + (roadmap?.penaltyDays || 0)}
         streak={streak}
@@ -591,7 +627,26 @@ export default function PathPilotApp() {
 
       {/* Main Body */}
       <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-        {!isOnboarded ? (
+        {isOnboarded && !authReady ? (
+          // Checking the sign-in session; avoids flashing the start page
+          <div className="py-16 text-center text-xs font-mono text-muted-foreground">Loading...</div>
+        ) : isOnboarded && !session ? (
+          <div className="py-10 space-y-6">
+            <div className="text-center max-w-xl mx-auto space-y-2">
+              <Badge variant="outline">WELCOME BACK</Badge>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                PathPilot Career Accountability
+              </h1>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                You are signed out. Sign in to continue your{" "}
+                {profile?.targetRole ? `${profile.targetRole} ` : ""}roadmap, daily tasks, and streak.
+              </p>
+            </div>
+            <div className="max-w-sm mx-auto">
+              <GoogleSignInButton returnPath="/" />
+            </div>
+          </div>
+        ) : !showDashboard ? (
           <div className="py-6 space-y-6">
             <div className="text-center max-w-xl mx-auto space-y-2">
               <Badge variant="outline">CAREER COACH INITIALIZATION</Badge>
@@ -726,7 +781,7 @@ export default function PathPilotApp() {
 
       {/* Sign-in required before the roadmap is generated (no guest mode) */}
       <LoginGateModal
-        isOpen={authReady && !session && (!!pendingOnboarding || isOnboarded)}
+        isOpen={authReady && !session && !!pendingOnboarding && !isOnboarded}
         roleLabel={pendingOnboarding?.targetRole || profile?.targetRole}
       />
 

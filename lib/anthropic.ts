@@ -99,8 +99,9 @@ export async function askPathPilot(
   const anthropic = new Anthropic({ apiKey: key });
 
   const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20241022",
-    max_tokens: 1024,
+    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5",
+    // Current models think before replying, and that thinking counts toward this limit.
+    max_tokens: 16000,
     system: PATHPILOT_SYSTEM_PROMPT,
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
   });
